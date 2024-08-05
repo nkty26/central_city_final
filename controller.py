@@ -34,7 +34,7 @@ def write_ocr_results(data, write_path):
 
 def main():
     # TRAIN LOCALLY AND SAVE MODEL TO "./trained_models"
-    model_path = '/home/asiadmin/Workspace/CENTRAL_FINAL/trained_models/new_trained_model.h5'
+    model_path = '/home/asiadmin/Workspace/CENTRAL_FINAL/trained_models/new_trained_model_v2.h5'
     trained_model = load_model(model_path)
     inference_module = Inference() 
     print("\n\n======================================== 1. Data Acquisition From IP Camera...  ========================================")

@@ -77,10 +77,12 @@ def logout(camera_ip, token):
     response = requests.post(url=url, headers=headers, data=json.dumps(data))
     print(response)
     print(response.text)
+
 def render(image,string):
     cv2.imshow(string, image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    
 def main():
     with open('/home/asiadmin/Workspace/test_ipcam_led_onoff/config_ipcam.json', 'r') as f:
         config = json.load(f)

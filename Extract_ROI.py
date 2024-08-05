@@ -198,7 +198,7 @@ class Extract_ROI:
         rightmost = tuple(intersection_list[intersection_list[:,:, 0].argmax()][0])
         topmost = tuple(intersection_list[intersection_list[:,:, 1].argmin()][0])
         bottommost = tuple(intersection_list[intersection_list[:,:, 1].argmax()][0])
-
+       
         sorted_points = [ None for _ in range(4) ]
         for idx,value in enumerate(self.PERSPECTIVE_TRANSFORM_SRC_POINTS_ORDER):
             if value=='leftmost':
@@ -245,7 +245,51 @@ class Extract_ROI:
     
     # Methos : overall image processing
     # 2024-07-23 14_0 ==========> 2024-07-16 15_00_08__1064725.jpg
-    def processImage(self, load_path,save_path, curr_cam):
+    def processImage(self, load_path,save_path, file):
+        print("INSIDE PROCESS IMAGE load_path", load_path)
+        print("INSIDE PROCESS IMAGE save_path", save_path)
+        print("FILE", file)
+        # check_path = "/".join(save_path.split("/")[0:-1])
+        # if not os.path.exists(check_path):
+        #     print(f"  --> Preprocessing Directory for {curr_cam} Does Not Exist")
+        #     print(f"  --> Creating {curr_cam} directory: {check_path}\n")
+        #     os.makedirs(check_path)
+        image = self.loadImage(load_path)
+        image_crop = self.cropImage(image)
+        blurred_image = self.blurImage(image_crop)
+        binary_image = self.binaryThresholdImage(blurred_image)
+        binary_morphology_image = self.morphologyImage(binary_image)
+        filled_image = self.floodFillImage(binary_morphology_image)
+        roi_masked_image = self.binaryThresholdFilledImage(filled_image)
+        image_masked = self.maskImage(image_crop,roi_masked_image)
+        contours = self.findContours(image_masked)
+        approx = self.approxPolydp(contours[0])
+        approx_manipulated = self.approxManipulation(approx)
+        approx_delta = self.createApproxDelta(approx_manipulated)
+        approx_slope_intercept = self.calculateSlopeIntercept(approx_delta,approx_manipulated)
+        intersection_list = self.calculateIntersection(approx_slope_intercept)
+        sorted_points = self.sortIntersectionList(intersection_list)
+        transformed_image = self.perspectiveTransform(sorted_points)
+        final_roi_image = self.finalROI(transformed_image)
+        save_path = os.path.join(save_path, file)
+        print('  --> PREPROCESSED Image {}'.format(save_path))
+        cv2.imwrite(save_path, final_roi_image)
+        print('  --> SAVED Image {}'.format(save_path))
+        image_name = save_path.split("/")[-1]
+        if self.DEBUG:
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        try: 
+            return image_name
+        except Exception as e: 
+            print(f"Error: No Image Found in the Directory --> Errror: {e}")
+            return None 
+
+    
+    def processImage2(self, load_path,save_path, curr_cam):
+        print("INSIDE PROCESS IMAGE load_path", load_path)
+        print("INSIDE PROCESS IMAGE save_path", save_path)
+        
         check_path = "/".join(save_path.split("/")[0:-1])
         if not os.path.exists(check_path):
             print(f"  --> Preprocessing Directory for {curr_cam} Does Not Exist")
@@ -281,6 +325,8 @@ class Extract_ROI:
             print(f"Error: No Image Found in the Directory --> Errror: {e}")
             return None 
 if __name__ == '__main__':
+
+
     config_filename = 'config_preprocess.json'
     centralcity_extractroi = Extract_ROI(config_filename)
  

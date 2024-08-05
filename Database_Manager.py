@@ -31,7 +31,7 @@ class File_Manager:
         dest_file = os.path.join(dest_path, curr_cam)
         print("COPY FROM   ", src_file)
         if os.path.isfile(src_file):
-            new_file_name = f"[{label}]_[{probability:.2f}%]_{curr_image}"
+            new_file_name = f"[{label}]_[{probability:.2f}]_{curr_image}"
             dest_file = os.path.join(dest_file, new_file_name)
             print("COPY TO    ", dest_file)
             shutil.copy(src_file, dest_file)
@@ -49,8 +49,8 @@ class File_Manager:
                 print(f"Creating Subdirectory for Digit Label {sub_dir}")
                 os.makedirs(sub_dir)
         img_name = curr_image.rstrip(".jpg")
-        src_path = os.path.join(src_path, curr_image)[0:-4] 
-        src_path = os.path.join(src_path, curr_image[0:-4]) + "__" 
+        src_path = os.path.join(src_path, curr_image).rstrip(".jpg")
+        src_path = os.path.join(src_path, curr_image.rstrip(".jpg")) + "__" 
         for i in range(len(digit_label)):
             new_src_path = src_path + "[" + str(i) + "]" + ".jpg"
             new_file_name = f"[{digit_label[i]}]_[{probability_array[i]:.2f}]_{img_name}__[{digit_label}]__[{curr_cam}][{i}].jpg"

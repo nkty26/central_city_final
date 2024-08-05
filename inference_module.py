@@ -60,6 +60,7 @@ class ModelHandler:
 class DatasetLoader:
     def __init__(self):
         pass  
+    
     def preprocess_image(self,image_path):
         img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         resized_img = cv2.resize(img, (28, 28))
@@ -87,8 +88,24 @@ class DatasetLoader:
 class Inference:
     def __init__(self):
         pass  
-        
+    
     def infer_realtime(self, model, image_path, current_image):
+        count = 0 
+        results = []
+        print("INSIDE INFER REAL TIME")
+        image_path = os.path.join("".join(image_path.split("__")[0]), current_image)
+        image_path = image_path + '.jpg'
+        print(image_path)
+        print(f"IMAGE {current_image} INFERENCE COMPLETED. FILE PATH: {image_path}")
+        if image_path.endswith('.png') or image_path.endswith('.jpg') or image_path.endswith('.jpeg'):
+            PREDICTION = self.predict_image(model, image_path)
+            for i, prob in enumerate(PREDICTION):
+                predicted_class = PREDICTION.argmax(axis=1)[0]
+                predicted_probability = np.max(PREDICTION[0]) 
+                print(f"=====================================>  PREDICTION: [{predicted_class}]  |  PREDICTION PROBABILITY: [{"{:.2f}".format(predicted_probability*100)}%]\n")
+        return (predicted_class, predicted_probability)
+    
+    def infer_realtime2(self, model, image_path, current_image):
         count = 0 
         results = []
         print(f"IMAGE {current_image} INFERENCE COMPLETED. FILE PATH: {image_path}")

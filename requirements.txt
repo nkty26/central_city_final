@@ -1,0 +1,10 @@
+opencv-python
+numpy
+requests
+pandas
+matplotlib
+imgaug
+scikit-learn
+seaborn
+keras
+tensorflow

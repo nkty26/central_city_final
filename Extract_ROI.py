@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import json, os 
 from PIL import Image  
+
 class Extract_ROI:
     def __init__(self,config_filename):
         self.loadConfig(config_filename)

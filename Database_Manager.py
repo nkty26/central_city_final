@@ -1,10 +1,6 @@
 
-from fileinput import filename
-import cv2, os, json, shutil
-from subprocess import check_call
+import os, shutil
 import cv2
-import numpy as np
-from collections import defaultdict
 class Database_Manager:
     def __init__(self, dir_path, curr_cam, curr_image):
         self.dir_path = dir_path

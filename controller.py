@@ -1,12 +1,10 @@
-from ocr_module import OCR 
-import os
-import json
-import shutil
-from acquire_data import acquire_data
-from ocr_module import OCR 
+
+import os, json, shutil
+from Acquisition import Acquisition
 from Extract_ROI import Extract_ROI
-from inference_module import Inference, DatasetLoader, DatasetSplitter, ModelHandler
-from Database_Manager import Database_Manager, File_Manager
+from Segmentation import Segmentation
+from Inference import Inference
+from Database_Manager import File_Manager
 import numpy as np
 from keras.api.models import load_model
 
@@ -33,16 +31,18 @@ def write_ocr_results(data, write_path):
             print("PREDICTIONS", predicted_labels, "\n")
 
 def main():
-    # TRAIN LOCALLY AND SAVE MODEL TO "./trained_models"
     model_path = '/home/asiadmin/Workspace/CENTRAL_FINAL/trained_models/new_trained_model_v2.h5'
     trained_model = load_model(model_path)
-    inference_module = Inference() 
+    
     print("\n\n======================================== 1. Data Acquisition From IP Camera...  ========================================")
-    acquisition_results = acquire_data() #1. Data Acquisition from IP Camera 
+    acquisition = Acquisition()
+    extract_roi = Extract_ROI(config_preprocess_json)
+    segmentation = Segmentation()
+    inference = Inference() 
+    acquisition_results = acquisition.acquire_data()
     print("Acquired Data: ", acquisition_results)
     config_preprocess_json = '/home/asiadmin/Workspace/CENTRAL_FINAL/config_preprocess.json'
-    # preprocess_results = '/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/'
-    extract_roi = Extract_ROI(config_preprocess_json)
+   
     camera_length = len(acquisition_results)
     OCR_RESULTS =[[] for _ in range(camera_length)] 
     
@@ -58,13 +58,13 @@ def main():
         if image_name: 
             print(f"\n======================================== 2. Preprocessing Image with ROI for [{curr_cam}][{image_name}]...  ========================================")
             save_path = os.path.join('/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/preprocessed_images', curr_cam, image_name)
-            preprocessed = extract_roi.processImage(load_path, save_path, curr_cam)
+            extract_roi.processImage(load_path, save_path, curr_cam)
             print(f"\n======================================== 3. Executing ROI Digit Segmentation for [{curr_cam}][{image_name}]...  ========================================")
             seg_load_path = os.path.join('/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/preprocessed_images', curr_cam)
             seg_save_path =  os.path.join('/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/segmented_digits', curr_cam)
-            ocr = OCR()
-            seg_results = ocr.segment_roi(seg_load_path, image_name, curr_cam)
-            inference_src_path = ocr.save_segmentation_data(seg_results, seg_save_path, curr_cam, image_name)
+
+            seg_results = segmentation.segment_roi(seg_load_path, image_name, curr_cam)
+            inference_src_path = segmentation.save_segmentation_data(seg_results, seg_save_path, curr_cam, image_name)
             curr_subdir = inference_src_path.split("/")[-1]
             img_idx = 0 
             curr_image_list = [] 
@@ -78,7 +78,7 @@ def main():
             for current_image in sorted_image_list:
                 curr_img_path = os.path.join('/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/segmented_digits/', curr_cam, curr_subdir, current_image)
                 index = current_image.split('[')[1][0]
-                PREDICTIONS = inference_module.infer_realtime(trained_model, curr_img_path, current_image)
+                PREDICTIONS = inference.infer_realtime(trained_model, curr_img_path, current_image)
                 PREDICTION = PREDICTIONS[0]
                 PREDICTION_PROB = PREDICTIONS[1]
                 OCR_PREDICTION+=str(PREDICTION)
@@ -93,10 +93,7 @@ def main():
             file_manager = File_Manager(seg_load_path, curr_cam, image_name)
             dest_path =  '/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/ocr_results_with_labels/'
             file_manager.write_ocr_labels_for_evaluation(seg_load_path, dest_path, OCR_PREDICTION, OVERALL_ACCURACY)
-            digit_src_path =  '/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/segmented_digits/'
             digit_dest_path =  '/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/train_dataset/'
             file_manager.write_ocr_labels_for_each_digit(seg_save_path, digit_dest_path, OCR_PREDICTION, PROBABILITY_ARRAY)
-            # ocr.save_segmentation_data_all_images(seg_results, seg_load_path, seg_save_path, curr_cam, i)
-            # print(segmentation_results)
 if __name__ == '__main__':
     main()

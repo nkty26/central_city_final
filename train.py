@@ -4,15 +4,12 @@ from sklearn.model_selection import train_test_split
 import pandas as pd 
 import matplotlib.pyplot as plt 
 from keras.api.models import load_model
-from keras.api.utils import to_categorical
-from keras.api.optimizers import SGD, Adam 
 from keras.api.models import Sequential
-from keras.api.layers import Dense, Flatten, Activation, ReLU, LeakyReLU, Softmax, Dropout, Conv2D, MaxPooling2D 
-import cv2, os, json
-from sklearn.utils import class_weight 
-from sklearn.metrics import classification_report, confusion_matrix, f1_score, precision_recall_curve 
+from keras.api.layers import Dense, Flatten, Dropout, Conv2D, MaxPooling2D 
+import cv2, os
+from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve 
 import seaborn as sns 
-
+# folder tree 구조 
 class DatasetLoader:
     def __init__(self):
         pass  
@@ -29,8 +26,7 @@ class DatasetLoader:
                         img = self.preprocess_image(image_path)
                         if img is not None:
                             images.append(img)
-                            labels.append(int(subdirectory))  # Use the subfolder name as the label
-                            # print("LABEL      ", int(subdirectory), "   |   IMAGE     ", image_path)
+                            labels.append(int(subdirectory)) 
         images = np.array(images)
         labels = np.array(labels)
         return images, labels
@@ -40,10 +36,6 @@ class DatasetLoader:
         resized_img = cv2.resize(img, (28, 28))
         normalized = resized_img.astype('float32') / 255.0
         reshaped = normalized.reshape(28, 28, 1)
-        # kernel = np.ones((3,3), np.uint8)  
-        # eroded = cv2.erode(reshaped, kernel, iterations=1)
-        # opened = cv2.dilate(eroded, kernel, iterations=1)
-        # DatasetLoader.render(opened, "opened")
         return reshaped
     
     def render(image,string):
@@ -57,9 +49,6 @@ class DatasetProcessor:
         self.labels = labels
 
     def split_custom_dataset(self):
-        # train_images, val_images, train_labels, val_labels = train_test_split(
-        #     self.images, self.labels, test_size=0.1, random_state=42
-        # )
         train_images, temp_images, train_labels, temp_labels = train_test_split(
         self.images, self.labels, test_size=0.2, random_state=42
         )
@@ -68,14 +57,6 @@ class DatasetProcessor:
         temp_images, temp_labels, test_size=0.5, random_state=42
         )
         return train_images, val_images, train_labels, val_labels, test_images, test_labels
-    
-    def handle_class_imbalance(self, src_path, dest_path):
-        print("Handling class imbalance...")
-        class_weights = class_weight.compute_class_weight('balanced', np.unique(self.labels), self.labels)
-        class_weights = dict(enumerate(class_weights))
-        with open(os.path.join(dest_path, 'class_weights.json'), 'w') as f:
-            json.dump(class_weights, f)
-        return class_weights
     
 class ModelHandler:
     def __init__(self, input_shape=(28, 28, 1), num_classes=10):
@@ -216,7 +197,7 @@ class Evaluator:
             iaa.Sequential([iaa.Multiply(1.5)]),  # Brightness
             iaa.Sequential([iaa.ElasticTransformation(alpha=1.0, sigma=1.0)]),  # Elastic
             iaa.Sequential([iaa.PiecewiseAffine(scale=0.02)]),  # Piecewise Affine
-            iaa.Sequential([iaa.Crop(percent=(0, 0.1))]),  # Random Croppingqqq
+            iaa.Sequential([iaa.Crop(percent=(0, 0.1))]),  # Random Cropping
         ]
 
         augmentation_descriptions = [
@@ -246,8 +227,7 @@ class Evaluator:
             if image.ndim == 3:  # (28, 28, 1)
                 image = np.expand_dims(image, axis=0)  # (1, 28, 28, 1)
             for j, aug in enumerate(augmentations):
-                augmented_image = aug(image=image[0])  # image[0] gives us (28, 28, 1)
-                # self.render(augmented_image, f"augmented {i} {j}")
+                augmented_image = aug(image=image[0])  
                 augmented_images_list.append((np.array(augmented_image), test_labels[i]))
         return (augmented_images_list, augmentation_descriptions)
 
@@ -293,22 +273,19 @@ class Evaluator:
         print("Correct: ", correct, "Total: ", total, "Accuracy: ", accuracy, "Avg Prediction Probability: ", avg_predicted_probability)
         print("Incorrect Predictions: ", incorrect) 
         print("=======================================================================================================")
-        # print(f"Inference Accuracy: {correct/total*100:.2f}%")
 
     def render(self, image, title):
         scale_factor = 5 
         if image.ndim == 2:
-        # Grayscale image
             image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         elif image.ndim == 3 and image.shape[2] == 1:
-            # Single-channel image
             image = cv2.cvtColor(image.squeeze(), cv2.COLOR_GRAY2BGR)
         height, width = image.shape[:2]
         new_width = int(width * scale_factor)
         new_height = int(height * scale_factor)
         resized_image = cv2.resize(image, (new_width, new_height))
-        cv2.namedWindow(title, cv2.WINDOW_NORMAL)  # Allows the window to be resized
-        cv2.resizeWindow(title, new_width, new_height)  # Resize the window to match the image size
+        cv2.namedWindow(title, cv2.WINDOW_NORMAL)  
+        cv2.resizeWindow(title, new_width, new_height) 
         cv2.imshow(title, resized_image)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -327,42 +304,38 @@ class Evaluator:
 def main():
     print("\n       ----------------------------------------- 1. LOADING --------------------------------------\n")
     src_path = '/home/asiadmin/Workspace/CENTRAL_FINAL/DATASETS/train_dataset/'
-    # src_path = '../OCR/segmented_digits/'
     dataset_loader = DatasetLoader()
     custom_images, custom_labels = dataset_loader.load_custom_images(src_path)
-    dataset_processor = DatasetProcessor(custom_images, custom_labels) # images, labels
+    dataset_processor = DatasetProcessor(custom_images, custom_labels) 
     train_images, val_images, train_labels, val_labels, test_images, test_labels = dataset_processor.split_custom_dataset()
     print(train_images[0], type(train_images[0]))
-    # /home/asiadmin/Workspace/CENTRAL_FINAL/trained_models/new_trained_model_v2.h5
     print("Splitted Dataset. Analyzing loaded dataset...\n")
-    # unique_labels, class_counts = np.unique(custom_labels, return_counts = True)
-    # label_distribution = dict(zip(unique_labels, class_counts))
-    # total = np.sum(class_counts)
-    # for i in range(len(unique_labels)):
-    #     print(f"Class {unique_labels[i]}: {class_counts[i]} instances ({(class_counts[i]/total)*100:.2f}%)")
-    # print(f"\nNormalizing Weights...")
-    # standardized_weights = (total / class_counts) * len(class_counts)
-    # target_weight = np.sum(standardized_weights)
-    # normalized_weights = standardized_weights / target_weight 
-    # weights = {}
-    # for label, weight in zip(unique_labels, normalized_weights):
-    #     weights.update({str(label): weight}) 
-    #     print(f"Class {label}: {class_counts[label]} instances, Weight: {weight:.4f}\n ")
-    # print(f"Unique labels in custom train dataset: {unique_labels}, Label range: {min(unique_labels)} to {max(unique_labels)}")
-    # print("weights", weights)
-    # print(f'Custom Images Shape: {train_images.shape} Custom Labels Shape: {train_labels.shape}')
-    # print(f'Validation Images Shape: {val_images.shape} Validation Labels Shape: {val_labels.shape}')
-    # print("\n       ----------------------------------------- 2. CREATING MODEL --------------------------------------\n")
-    # model_handler = ModelHandler(input_shape=(28, 28, 1), num_classes=10)
-    # model = model_handler.create_model()
-
+    unique_labels, class_counts = np.unique(custom_labels, return_counts = True)
+    label_distribution = dict(zip(unique_labels, class_counts))
+    total = np.sum(class_counts)
+    for i in range(len(unique_labels)):
+        print(f"Class {unique_labels[i]}: {class_counts[i]} instances ({(class_counts[i]/total)*100:.2f}%)")
+    print(f"\nNormalizing Weights...")
+    standardized_weights = (total / class_counts) * len(class_counts)
+    target_weight = np.sum(standardized_weights)
+    normalized_weights = standardized_weights / target_weight 
+    weights = {}
+    for label, weight in zip(unique_labels, normalized_weights):
+        weights.update({str(label): weight}) 
+        print(f"Class {label}: {class_counts[label]} instances, Weight: {weight:.4f}\n ")
+    print(f"Unique labels in custom train dataset: {unique_labels}, Label range: {min(unique_labels)} to {max(unique_labels)}")
+    print("weights", weights)
+    print(f'Custom Images Shape: {train_images.shape} Custom Labels Shape: {train_labels.shape}')
+    print(f'Validation Images Shape: {val_images.shape} Validation Labels Shape: {val_labels.shape}')
+    print("\n       ----------------------------------------- 2. CREATING MODEL --------------------------------------\n")
+    model_handler = ModelHandler(input_shape=(28, 28, 1), num_classes=10)
+    model = model_handler.create_model()
     # print("\n       ----------------------------------------- 3. TRAINING / FINE TUNING ON CUSTOM DATASET--------------------------------------\n")
-    # model_path = './trained_models/test_inference_model.h5'
+    model_path = './trained_models/code_review_model.h5'
     # history = model_handler.train_model(train_images, train_labels, val_images, val_labels, model_path, weights)
     
     print("\n       ----------------------------------------- 4-1. MODEL EVALUATION TEST DATASET--------------------------------------\n")
-    trained_model_path = '/home/asiadmin/Workspace/CENTRAL_FINAL/trained_models/test_inference_model.h5'
-    trained_model = load_model(trained_model_path)
+    trained_model = load_model(model_path)
     evaluator = Evaluator(trained_model, test_images=test_images, test_labels=test_labels)
     # evaluator.evaluate_inference_performance_test_dataset(trained_model, test_images, test_labels)
     print("\n       ----------------------------------------- 4-2. MODEL EVALUATION AUGMENTED DATASET --------------------------------------\n")
